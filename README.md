@@ -1,4 +1,4 @@
-# TicketMeLL · Backlog online
+# TicketMeLL
 
 Aplicación web estática en español para registrar casos, priorizarlos, seguir su estado, adjuntar imágenes y consultar el historial de cambios. Está preparada para alojarse en Vercel y usa Supabase para compartir los datos y las evidencias entre compañeros.
 
