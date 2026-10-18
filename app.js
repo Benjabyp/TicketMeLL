@@ -21,9 +21,10 @@ function configured() { return CONFIG.url && CONFIG.anonKey; }
 function headers(extra = {}) { return { apikey: CONFIG.anonKey, Authorization: `Bearer ${CONFIG.anonKey}`, ...extra }; }
 async function api(path, options = {}) {
   const response = await fetch(`${CONFIG.url}/rest/v1/${path}`, { ...options, headers: headers(options.headers || {}) });
-  if (!response.ok) { const body = await response.text(); throw new Error(body || `Error ${response.status}`); }
-  if (response.status === 204) return null;
-  return response.json();
+  const body = await response.text();
+  if (!response.ok) throw new Error(body || `Error ${response.status}`);
+  if (!body) return null;
+  return JSON.parse(body);
 }
 function notify(message) { const toast = $("#toast"); toast.textContent = message; toast.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 3200); }
 function initials(name) { return (name || "?").trim().split(/\s+/).slice(0,2).map(part => part[0]).join("").toUpperCase(); }
