@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f7fb" />
+    <meta name="description" content="Portal interno para registrar, priorizar y dar seguimiento a pendientes de infraestructura." />
+    <script>try{document.documentElement.dataset.theme=localStorage.getItem('ticketmell-theme')||'dark'}catch{}</script>
+    <title>Backlog online · TicketMeLL</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#" aria-label="Inicio">
+          <span class="brand-mark">M</span>
+          <span class="brand-copy"><strong>TicketMeLL</strong><small>CONTROL</small></span>
+        </a>
+        <div class="workspace-label">ESPACIO DE TRABAJO</div>
+        <nav><a class="nav-link active" href="#tickets"><span class="nav-icon">▦</span> Pendientes <span class="nav-count" id="nav-count">0</span></a></nav>
+        <div class="sidebar-bottom"><div class="help-card"><span class="help-icon">✳</span><strong>¿Necesitas ayuda?</strong><p>Registra un pendiente y el equipo podrá darle seguimiento.</p></div><div class="user-chip"><span class="avatar">CT</span><span><strong>Control</strong><small>Equipo de soporte</small></span><span class="more">···</span></div></div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar"><div class="breadcrumbs"><span>TicketMeLL</span><span class="crumb-sep">/</span><strong>Backlog online</strong></div><div class="top-actions"><span class="live-dot"></span><span class="sync-label" id="sync-label">Conectando…</span><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Cambiar a modo claro" title="Cambiar a modo claro">☼</button><button class="icon-button" title="Actualizar" id="refresh-button">↻</button><span class="top-avatar">CT</span></div></header>
+        <section class="page" id="tickets">
+          <div class="page-heading"><div><div class="eyebrow">EQUIPO DE INFRAESTRUCTURA</div><h1>Backlog online</h1><p class="subtitle">Centraliza solicitudes y sigue cada caso hasta su resolución.</p></div><button class="primary-button" id="new-ticket"><span>＋</span> Nuevo pendiente</button></div>
+          <div class="summary-grid">
+            <article class="summary-card"><span class="summary-icon purple">▦</span><div><span class="summary-label">Total de casos</span><strong id="total-count">—</strong></div><span class="summary-note">registrados</span></article>
+            <article class="summary-card"><span class="summary-icon amber">◷</span><div><span class="summary-label">Pendientes</span><strong id="pending-count">—</strong></div><span class="summary-note">por atender</span></article>
+            <article class="summary-card"><span class="summary-icon blue">↗</span><div><span class="summary-label">En proceso</span><strong id="progress-count">—</strong></div><span class="summary-note">en atención</span></article>
+            <article class="summary-card"><span class="summary-icon green">✓</span><div><span class="summary-label">Realizados</span><strong id="done-count">—</strong></div><span class="summary-note">resueltos</span></article>
+          </div>
+          <section class="table-card">
+            <div class="table-heading"><div><h2>Todos los pendientes</h2><p>Revisa, prioriza y actualiza los casos del equipo.</p></div><button class="secondary-button export-button" id="export-button">⇩ <span>Exportar Excel</span></button></div>
+            <div class="toolbar"><label class="search-box"><span>⌕</span><input id="search-input" type="search" placeholder="Buscar por tema, usuario o infraestructura…" /></label><select id="status-filter" class="filter-select"><option value="">Todos los estados</option><option>Pendiente</option><option>En proceso</option><option>Realizado</option></select><select id="priority-filter" class="filter-select"><option value="">Todas las prioridades</option><option>Alta</option><option>Media</option><option>Baja</option></select></div>
+            <div class="table-wrap"><table><thead><tr><th>CASO</th><th>USUARIO</th><th>INFRAESTRUCTURA</th><th>PRIORIDAD</th><th>ESTADO</th><th>AVANCE</th><th>FECHA DE REGISTRO</th><th></th></tr></thead><tbody id="ticket-rows"><tr><td colspan="8" class="empty-state">Conectando con la base de datos…</td></tr></tbody></table></div>
+            <div class="table-footer"><span id="row-count">0 casos</span><span class="footer-note">Los cambios se guardan automáticamente</span></div>
+          </section>
+          <footer class="page-footer">TicketMeLL · Backlog online <span>•</span> Actualizado en tiempo real</footer>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="ticket-dialog" class="dialog"><form id="ticket-form" enctype="multipart/form-data"><div class="dialog-heading"><div><span class="eyebrow">REGISTRO DE SOLICITUD</span><h2 id="form-title">Nuevo pendiente</h2></div><button class="close-button" type="button" data-close aria-label="Cerrar">×</button></div><input type="hidden" name="id" /><label>Nombre del usuario<input name="user_name" required maxlength="100" placeholder="Ej. Ana Pérez" /></label><div class="form-row"><label>Infraestructura<input name="infrastructure" required maxlength="120" placeholder="Ej. Servidores, red, equipos…" /></label><label>Tema<input name="topic" required maxlength="160" placeholder="Resumen del caso" /></label></div><label>Descripción del caso<textarea name="description" required rows="4" maxlength="4000" placeholder="Explica el caso con suficiente detalle para que cualquier persona pueda entenderlo."></textarea></label><div class="form-row"><label>Prioridad<select name="priority"><option>Media</option><option>Alta</option><option>Baja</option></select></label><label>Estado<select name="status"><option>Pendiente</option><option>En proceso</option><option>Realizado</option></select></label></div><label class="file-field">Adjunto <span class="optional">(opcional · imagen hasta 5 MB)</span><input name="attachment" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /><span class="file-help" id="file-help">Selecciona una imagen como evidencia.</span></label><div class="form-error" id="form-error" role="alert"></div><div class="dialog-actions"><button class="secondary-button" type="button" data-close>Cancelar</button><button class="primary-button" type="submit" id="save-button">Guardar pendiente</button></div></form></dialog>
+
+    <dialog id="detail-dialog" class="dialog detail-dialog"><div class="detail-head"><div><span class="eyebrow">DETALLE DEL CASO</span><h2 id="detail-title"></h2></div><button class="close-button" type="button" data-close aria-label="Cerrar">×</button></div><div id="detail-content"></div><section class="history-section"><h3>Historial de ediciones <span id="history-count" class="history-count"></span></h3><div id="history-list" class="history-list"></div></section></dialog>
+    <div id="toast" class="toast" role="status"></div>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+    <script src="./app.js" defer></script>
+  </body>
+</html>
