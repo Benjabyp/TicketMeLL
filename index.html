@@ -20,12 +20,12 @@
           <span class="brand-copy"><strong>TicketMeLL</strong><small>CONTROL</small></span>
         </a>
         <div class="workspace-label">ESPACIO DE TRABAJO</div>
-        <nav><a class="nav-link active" href="#tickets"><span class="nav-icon">▦</span> Pendientes <span class="nav-count" id="nav-count">0</span></a></nav>
+        <nav class="sidebar-nav"><a class="nav-link active" href="#tickets" data-view="tickets"><span class="nav-icon">▦</span> Pendientes <span class="nav-count" id="nav-count">0</span></a><a class="nav-link" href="#dashboard" data-view="dashboard"><span class="nav-icon">▤</span> Dashboard</a></nav>
         <div class="sidebar-bottom"><div class="help-card"><span class="help-icon">✳</span><strong>¿Necesitas ayuda?</strong><p>Registra un pendiente y el equipo podrá darle seguimiento.</p></div><div class="user-chip"><span class="avatar">CT</span><span><strong>Control</strong><small>Equipo de soporte</small></span><span class="more">···</span></div></div>
       </aside>
 
       <main class="main-content">
-        <header class="topbar"><div class="breadcrumbs"><span>TicketMeLL</span><span class="crumb-sep">/</span><strong>Backlog online</strong></div><div class="top-actions"><span class="live-dot"></span><span class="sync-label" id="sync-label">Conectando…</span><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Cambiar a modo claro" title="Cambiar a modo claro">☼</button><button class="icon-button" title="Actualizar" id="refresh-button">↻</button><span class="top-avatar">CT</span></div></header>
+        <header class="topbar"><div class="breadcrumbs"><span>TicketMeLL</span><span class="crumb-sep">/</span><strong id="current-view-label">Backlog online</strong></div><div class="top-actions"><span class="live-dot"></span><span class="sync-label" id="sync-label">Conectando…</span><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Cambiar a modo claro" title="Cambiar a modo claro">☼</button><button class="icon-button" title="Actualizar" id="refresh-button">↻</button><span class="top-avatar">CT</span></div></header>
         <section class="page" id="tickets">
           <div class="page-heading"><div><div class="eyebrow">EQUIPO DE INFRAESTRUCTURA</div><h1>Backlog online</h1><p class="subtitle">Centraliza solicitudes y sigue cada caso hasta su resolución.</p></div><button class="primary-button" id="new-ticket"><span>＋</span> Nuevo pendiente</button></div>
           <div class="summary-grid">
@@ -36,11 +36,27 @@
           </div>
           <section class="table-card">
             <div class="table-heading"><div><h2>Todos los pendientes</h2><p>Revisa, prioriza y actualiza los casos del equipo.</p></div><button class="secondary-button export-button" id="export-button">⇩ <span>Exportar Excel</span></button></div>
-            <div class="toolbar"><label class="search-box"><span>⌕</span><input id="search-input" type="search" placeholder="Buscar por tema, usuario o infraestructura…" /></label><select id="status-filter" class="filter-select"><option value="">Todos los estados</option><option>Pendiente</option><option>En proceso</option><option>Realizado</option></select><select id="priority-filter" class="filter-select"><option value="">Todas las prioridades</option><option>Alta</option><option>Media</option><option>Baja</option></select></div>
-            <div class="table-wrap"><table><thead><tr><th>CASO</th><th>USUARIO</th><th>INFRAESTRUCTURA</th><th>PRIORIDAD</th><th>ESTADO</th><th>AVANCE</th><th>FECHA DE REGISTRO</th><th></th></tr></thead><tbody id="ticket-rows"><tr><td colspan="8" class="empty-state">Conectando con la base de datos…</td></tr></tbody></table></div>
+            <div class="toolbar"><label class="search-box"><span>⌕</span><input id="search-input" type="search" placeholder="Buscar código, tema, usuario o infraestructura…" /></label><select id="status-filter" class="filter-select"><option value="">Todos los estados</option><option>Pendiente</option><option>En proceso</option><option>Realizado</option></select><select id="priority-filter" class="filter-select"><option value="">Todas las prioridades</option><option>Alta</option><option>Media</option><option>Baja</option></select></div>
+            <div class="table-wrap"><table><thead><tr><th>CÓDIGO</th><th>CASO</th><th>USUARIO</th><th>INFRAESTRUCTURA</th><th>PRIORIDAD</th><th>ESTADO</th><th>AVANCE</th><th>FECHA DE REGISTRO</th><th></th></tr></thead><tbody id="ticket-rows"><tr><td colspan="9" class="empty-state">Conectando con la base de datos…</td></tr></tbody></table></div>
             <div class="table-footer"><span id="row-count">0 casos</span><span class="footer-note">Los cambios se guardan automáticamente</span></div>
           </section>
           <footer class="page-footer">TicketMeLL · Backlog online <span>•</span> Actualizado en tiempo real</footer>
+        </section>
+        <section class="page dashboard-page" id="dashboard-view" hidden>
+          <div class="page-heading"><div><div class="eyebrow">SEGUIMIENTO DEL EQUIPO</div><h1>Dashboard</h1><p class="subtitle">Resumen de carga, prioridades y avance de los casos registrados.</p></div><button class="secondary-button" id="dashboard-refresh">↻ Actualizar datos</button></div>
+          <div class="summary-grid dashboard-summary">
+            <article class="summary-card"><span class="summary-icon purple">▦</span><div><span class="summary-label">Total de casos</span><strong id="dash-total">0</strong></div></article>
+            <article class="summary-card"><span class="summary-icon amber">◷</span><div><span class="summary-label">Pendientes</span><strong id="dash-pending">0</strong></div></article>
+            <article class="summary-card"><span class="summary-icon blue">↗</span><div><span class="summary-label">En proceso</span><strong id="dash-progress">0</strong></div></article>
+            <article class="summary-card"><span class="summary-icon green">✓</span><div><span class="summary-label">Realizados</span><strong id="dash-done">0</strong></div></article>
+          </div>
+          <div class="dashboard-grid">
+            <section class="chart-card"><div class="chart-heading"><div><h2>Casos por usuario</h2><p>Personas con más casos registrados</p></div><span class="chart-icon purple">♙</span></div><div id="user-stats" class="stat-list"></div></section>
+            <section class="chart-card"><div class="chart-heading"><div><h2>Casos por infraestructura</h2><p>Distribución de solicitudes</p></div><span class="chart-icon blue">▤</span></div><div id="infrastructure-stats" class="stat-list"></div></section>
+            <section class="chart-card"><div class="chart-heading"><div><h2>Estado de los casos</h2><p>Avance general del backlog</p></div><span class="chart-icon green">◷</span></div><div id="status-stats" class="stat-list"></div></section>
+            <section class="chart-card"><div class="chart-heading"><div><h2>Prioridades</h2><p>Casos agrupados por prioridad</p></div><span class="chart-icon amber">⚑</span></div><div id="priority-stats" class="stat-list"></div></section>
+          </div>
+          <footer class="page-footer">TicketMeLL · Estadísticas de todos los casos registrados</footer>
         </section>
       </main>
     </div>

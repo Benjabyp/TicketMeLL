@@ -1,8 +1,10 @@
 -- Ejecuta este archivo en Supabase > SQL Editor.
 create extension if not exists pgcrypto;
+create sequence if not exists public.ticket_code_seq start with 100;
 
 create table if not exists public.tickets (
   id uuid primary key default gen_random_uuid(),
+  code text not null default ('BY' || nextval('public.ticket_code_seq')::text),
   user_name text not null check (char_length(user_name) between 1 and 100),
   infrastructure text not null check (char_length(infrastructure) between 1 and 120),
   topic text not null check (char_length(topic) between 1 and 160),
@@ -12,6 +14,18 @@ create table if not exists public.tickets (
   status text not null default 'Pendiente' check (status in ('Pendiente','En proceso','Realizado')),
   created_at timestamptz not null default now()
 );
+
+-- Añade códigos correlativos también a los tickets creados antes de esta actualización.
+alter table public.tickets add column if not exists code text;
+update public.tickets set code = 'BY' || nextval('public.ticket_code_seq')::text where code is null;
+select setval(
+  'public.ticket_code_seq',
+  greatest(99, coalesce((select max(substring(code from 3)::bigint) from public.tickets where code ~ '^BY[0-9]+$'), 99)),
+  true
+);
+alter table public.tickets alter column code set default ('BY' || nextval('public.ticket_code_seq')::text);
+alter table public.tickets alter column code set not null;
+create unique index if not exists tickets_code_key on public.tickets(code);
 
 create table if not exists public.ticket_history (
   id bigint generated always as identity primary key,
@@ -27,17 +41,20 @@ create table if not exists public.ticket_history (
 alter table public.tickets enable row level security;
 alter table public.ticket_history enable row level security;
 grant usage on schema public to anon, authenticated;
-grant select, insert, update on public.tickets to anon, authenticated;
+grant usage, select on sequence public.ticket_code_seq to anon, authenticated;
+grant select, insert, update, delete on public.tickets to anon, authenticated;
 grant select on public.ticket_history to anon, authenticated;
 
 -- MVP compartido sin cuentas: cualquier persona con la URL puede ver, registrar y editar.
 drop policy if exists "Public can read tickets" on public.tickets;
 drop policy if exists "Public can create tickets" on public.tickets;
 drop policy if exists "Public can update tickets" on public.tickets;
+drop policy if exists "Public can delete tickets" on public.tickets;
 drop policy if exists "Public can read history" on public.ticket_history;
 create policy "Public can read tickets" on public.tickets for select to anon, authenticated using (true);
 create policy "Public can create tickets" on public.tickets for insert to anon, authenticated with check (true);
 create policy "Public can update tickets" on public.tickets for update to anon, authenticated using (true) with check (true);
+create policy "Public can delete tickets" on public.tickets for delete to anon, authenticated using (true);
 create policy "Public can read history" on public.ticket_history for select to anon, authenticated using (true);
 
 create or replace function public.record_ticket_changes()
@@ -77,5 +94,7 @@ on conflict (id) do update set public=true,file_size_limit=5242880,allowed_mime_
 
 drop policy if exists "Public can view evidence" on storage.objects;
 drop policy if exists "Public can upload evidence" on storage.objects;
+drop policy if exists "Public can delete evidence" on storage.objects;
 create policy "Public can view evidence" on storage.objects for select to anon, authenticated using (bucket_id = 'evidencias');
 create policy "Public can upload evidence" on storage.objects for insert to anon, authenticated with check (bucket_id = 'evidencias');
+create policy "Public can delete evidence" on storage.objects for delete to anon, authenticated using (bucket_id = 'evidencias');

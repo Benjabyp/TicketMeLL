@@ -39,17 +39,41 @@ function refreshCounters() {
   $("#done-count").textContent = state.tickets.filter(t => t.status === "Realizado").length;
   $("#nav-count").textContent = state.tickets.length;
 }
+function renderStatList(target, values, limit = Infinity) {
+  const container = $(target), items = values.slice(0, limit), max = Math.max(1, ...items.map(item => item.count));
+  if (!items.length || !items.some(item => item.count)) { container.innerHTML = `<div class="stats-empty">Todavía no hay casos para mostrar.</div>`; return; }
+  container.innerHTML = items.map(item => `<div class="stat-row"><div class="stat-row-heading"><span title="${escapeHtml(item.label)}">${escapeHtml(item.label)}</span><strong>${item.count}</strong></div><div class="stat-track"><span style="width:${Math.max(5, Math.round(item.count / max * 100))}%"></span></div></div>`).join("");
+}
+function renderDashboard() {
+  const tickets = state.tickets;
+  $("#dash-total").textContent = tickets.length;
+  $("#dash-pending").textContent = tickets.filter(ticket => ticket.status === "Pendiente").length;
+  $("#dash-progress").textContent = tickets.filter(ticket => ticket.status === "En proceso").length;
+  $("#dash-done").textContent = tickets.filter(ticket => ticket.status === "Realizado").length;
+  const countBy = (field, order = []) => {
+    const counts = new Map();
+    for (const ticket of tickets) { const label = ticket[field] || "Sin especificar"; counts.set(label, (counts.get(label) || 0) + 1); }
+    return [...counts].map(([label,count])=>({label,count})).sort((a,b)=>b.count-a.count || a.label.localeCompare(b.label,"es"));
+  };
+  const byFixedOrder = (field, order) => order.map(label=>({label,count:tickets.filter(ticket=>ticket[field]===label).length}));
+  renderStatList("#user-stats", countBy("user_name"), 6);
+  renderStatList("#infrastructure-stats", countBy("infrastructure"), 6);
+  renderStatList("#status-stats", byFixedOrder("status", ["Pendiente","En proceso","Realizado"]));
+  renderStatList("#priority-stats", byFixedOrder("priority", ["Alta","Media","Baja"]));
+}
 function filteredTickets() {
   const term = $("#search-input").value.trim().toLocaleLowerCase("es");
   const status = $("#status-filter").value, priority = $("#priority-filter").value;
-  return state.tickets.filter(ticket => (!status || ticket.status === status) && (!priority || ticket.priority === priority) && (!term || [ticket.topic,ticket.user_name,ticket.infrastructure,ticket.description].some(value => (value || "").toLocaleLowerCase("es").includes(term))));
+  return state.tickets.filter(ticket => (!status || ticket.status === status) && (!priority || ticket.priority === priority) && (!term || [ticket.code,ticket.topic,ticket.user_name,ticket.infrastructure,ticket.description].some(value => (value || "").toLocaleLowerCase("es").includes(term))));
 }
 function render() {
   refreshCounters();
+  renderDashboard();
   const tickets = filteredTickets();
   $("#row-count").textContent = `${tickets.length} ${tickets.length === 1 ? "caso" : "casos"}`;
-  if (!tickets.length) { rows.innerHTML = `<tr><td colspan="8" class="empty-state">${state.ready ? "No hay casos que coincidan. Registra un nuevo pendiente para comenzar." : "Conectando con la base de datos…"}</td></tr>`; return; }
+  if (!tickets.length) { rows.innerHTML = `<tr><td colspan="9" class="empty-state">${state.ready ? "No hay casos que coincidan. Registra un nuevo pendiente para comenzar." : "Conectando con la base de datos…"}</td></tr>`; return; }
   rows.innerHTML = tickets.map(ticket => `<tr>
+    <td><span class="ticket-code">${escapeHtml(ticket.code || "BY—")}</span></td>
     <td class="case-cell"><span class="case-title" title="${escapeHtml(ticket.topic)}">${escapeHtml(ticket.topic)}</span><span class="case-description" title="${escapeHtml(ticket.description)}">${escapeHtml(ticket.description)}</span></td>
     <td><span class="person-cell"><span class="person-avatar">${escapeHtml(initials(ticket.user_name))}</span>${escapeHtml(ticket.user_name)}</span></td>
     <td><span class="infra-tag">${escapeHtml(ticket.infrastructure)}</span></td>
@@ -57,14 +81,14 @@ function render() {
     <td><select class="pill inline-select ${statusClass(ticket.status)}" data-field="status" data-id="${ticket.id}" aria-label="Estado">${["Pendiente","En proceso","Realizado"].map(v=>`<option ${ticket.status===v?"selected":""}>${v}</option>`).join("")}</select></td>
     <td><div class="progress-cell"><div class="work-progress ${ticket.status === "Realizado" ? "complete" : ""}" role="img" aria-label="${ticket.status === "Realizado" ? "Trabajo completado" : "Trabajo en seguimiento"}"><span></span></div><small>${ticket.status === "Realizado" ? "Completado" : "En seguimiento"}</small></div></td>
     <td class="date-cell">${dateLabel(ticket.created_at)}</td>
-    <td><div class="row-actions"><button class="text-action" data-action="view" data-id="${ticket.id}">Ver ediciones</button><button class="text-action" data-action="edit" data-id="${ticket.id}" aria-label="Editar">Editar</button></div></td>
+    <td><div class="row-actions"><button class="text-action" data-action="view" data-id="${ticket.id}">Ver ediciones</button><button class="text-action" data-action="edit" data-id="${ticket.id}" aria-label="Editar">Editar</button><button class="trash-button" data-action="delete" data-id="${ticket.id}" aria-label="Eliminar ${escapeHtml(ticket.code || "caso")}" title="Eliminar caso"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 2.5h5m-7 1.5h9m-8 0 .5 9h4l.5-9M6.5 6v5m3-5v5"/></svg></button></div></td>
   </tr>`).join("");
 }
 async function loadTickets() {
-  if (!configured()) { $("#sync-label").textContent = "Falta configurar Supabase"; rows.innerHTML = `<tr><td colspan="8" class="empty-state">La app está lista. Configura Supabase siguiendo el README para empezar a registrar pendientes.</td></tr>`; return; }
+  if (!configured()) { $("#sync-label").textContent = "Falta configurar Supabase"; rows.innerHTML = `<tr><td colspan="9" class="empty-state">La app está lista. Configura Supabase siguiendo el README para empezar a registrar pendientes.</td></tr>`; return; }
   $("#sync-label").textContent = "Sincronizando…";
   try { state.tickets = await api("tickets?select=*&order=created_at.desc"); state.ready = true; $("#sync-label").textContent = "Sincronizado"; render(); }
-  catch (error) { state.ready = false; $("#sync-label").textContent = "Error de conexión"; rows.innerHTML = `<tr><td colspan="8" class="empty-state">No se pudo cargar la información. Revisa la configuración de Supabase.<br><small>${escapeHtml(error.message)}</small></td></tr>`; }
+  catch (error) { state.ready = false; $("#sync-label").textContent = "Error de conexión"; rows.innerHTML = `<tr><td colspan="9" class="empty-state">No se pudo cargar la información. Revisa la configuración de Supabase.<br><small>${escapeHtml(error.message)}</small></td></tr>`; }
 }
 async function uploadFile(file) {
   if (!file) return null;
@@ -93,10 +117,30 @@ async function updateField(id, field, value) {
   try { await api(`tickets?id=eq.${encodeURIComponent(id)}`, { method:"PATCH", headers:{"Content-Type":"application/json","Prefer":"return=minimal"}, body:JSON.stringify({[field]:value}) }); const ticket=state.tickets.find(t=>String(t.id)===String(id)); if(ticket) ticket[field]=value; render(); notify("Cambio guardado."); }
   catch(error) { notify(`No se pudo guardar el cambio: ${error.message}`); await loadTickets(); }
 }
+async function deleteTicket(id) {
+  const ticket = state.tickets.find(item => String(item.id) === String(id));
+  if (!ticket || !window.confirm(`¿Eliminar el caso ${ticket.code || ticket.topic}? Esta acción no se puede deshacer.`)) return;
+  try {
+    await api(`tickets?id=eq.${encodeURIComponent(id)}`, { method:"DELETE", headers:{"Prefer":"return=minimal"} });
+  } catch (error) { notify(`No se pudo eliminar el caso: ${error.message}`); return; }
+  state.tickets = state.tickets.filter(item => String(item.id) !== String(id));
+  render();
+  if (ticket.attachment_url) {
+    const prefix = `${CONFIG.url}/storage/v1/object/public/${CONFIG.bucket}/`;
+    if (ticket.attachment_url.startsWith(prefix)) {
+      try {
+        const objectPath = ticket.attachment_url.slice(prefix.length).split("/").map(part => encodeURIComponent(decodeURIComponent(part))).join("/");
+        const response = await fetch(`${CONFIG.url}/storage/v1/object/${CONFIG.bucket}/${objectPath}`, { method:"DELETE", headers:headers() });
+        if (!response.ok) { notify(`Caso ${ticket.code} eliminado; no se pudo borrar su imagen adjunta.`); return; }
+      } catch { notify(`Caso ${ticket.code} eliminado; no se pudo borrar su imagen adjunta.`); return; }
+    }
+  }
+  notify(`Caso ${ticket.code || ""} eliminado.`);
+}
 async function viewDetails(id) {
   const ticket=state.tickets.find(item=>String(item.id)===String(id)); if(!ticket)return;
-  $("#detail-title").textContent=ticket.topic;
-  $("#detail-content").innerHTML=`<div class="detail-grid"><div class="detail-field"><small>Usuario</small><strong>${escapeHtml(ticket.user_name)}</strong></div><div class="detail-field"><small>Infraestructura</small><strong>${escapeHtml(ticket.infrastructure)}</strong></div><div class="detail-field"><small>Prioridad</small><strong><span class="pill ${priorityClass(ticket.priority)}">${escapeHtml(ticket.priority)}</span></strong></div><div class="detail-field"><small>Estado actual</small><strong><span class="pill ${statusClass(ticket.status)}">${escapeHtml(ticket.status)}</span></strong></div><div class="detail-field"><small>Fecha de registro</small><strong>${dateLabel(ticket.created_at)}</strong></div><div class="detail-field"><small>Evidencia</small><strong>${ticket.attachment_url?`<a class="attachment-link" href="${escapeHtml(ticket.attachment_url)}" target="_blank" rel="noreferrer">Ver imagen ↗</a>`:"Sin adjunto"}</strong></div></div><div class="detail-description">${escapeHtml(ticket.description)}</div>`;
+  $("#detail-title").textContent=`${ticket.code || ""} · ${ticket.topic}`;
+  $("#detail-content").innerHTML=`<div class="detail-grid"><div class="detail-field"><small>Código</small><strong>${escapeHtml(ticket.code||"—")}</strong></div><div class="detail-field"><small>Usuario</small><strong>${escapeHtml(ticket.user_name)}</strong></div><div class="detail-field"><small>Infraestructura</small><strong>${escapeHtml(ticket.infrastructure)}</strong></div><div class="detail-field"><small>Prioridad</small><strong><span class="pill ${priorityClass(ticket.priority)}">${escapeHtml(ticket.priority)}</span></strong></div><div class="detail-field"><small>Estado actual</small><strong><span class="pill ${statusClass(ticket.status)}">${escapeHtml(ticket.status)}</span></strong></div><div class="detail-field"><small>Fecha de registro</small><strong>${dateLabel(ticket.created_at)}</strong></div><div class="detail-field"><small>Evidencia</small><strong>${ticket.attachment_url?`<a class="attachment-link" href="${escapeHtml(ticket.attachment_url)}" target="_blank" rel="noreferrer">Ver imagen ↗</a>`:"Sin adjunto"}</strong></div></div><div class="detail-description">${escapeHtml(ticket.description)}</div>`;
   $("#history-list").innerHTML="<div class='history-item'><strong>Cargando historial…</strong></div>"; $("#history-count").textContent=""; detailDialog.showModal();
   try { const edits=await api(`ticket_history?ticket_id=eq.${encodeURIComponent(id)}&select=*&order=created_at.desc`); $("#history-count").textContent=`(${edits.length})`; $("#history-list").innerHTML=edits.length?edits.map(edit=>`<div class="history-item"><strong>${escapeHtml(edit.field_label)}</strong><p>${escapeHtml(edit.old_value||"—")} → ${escapeHtml(edit.new_value||"—")}</p><small>${dateLabel(edit.created_at)}${edit.changed_by?` · ${escapeHtml(edit.changed_by)}`:""}</small></div>`).join(""):"<div class='history-item'><strong>Sin ediciones todavía</strong><p>Los cambios en prioridad, estado y datos del caso aparecerán aquí.</p></div>"; }
   catch(error) { $("#history-list").innerHTML="<div class='history-item'><strong>No se pudo cargar el historial</strong><p>Revisa la configuración de la tabla de historial.</p></div>"; }
@@ -105,17 +149,27 @@ function editTicket(id) { const ticket=state.tickets.find(item=>String(item.id)=
 function openNewTicket() { form.reset(); form.elements.id.value=""; $("#form-title").textContent="Nuevo pendiente"; $("#save-button").textContent="Guardar pendiente"; $("#file-help").textContent="Selecciona una imagen como evidencia."; $("#form-error").textContent=""; ticketDialog.showModal(); }
 function exportExcel() {
   if(!state.tickets.length){notify("No hay casos para exportar.");return;}
-  const data=state.tickets.map(ticket=>({"Nombre del usuario":ticket.user_name,"Infraestructura":ticket.infrastructure,"Tema":ticket.topic,"Descripción del caso":ticket.description,"Adjunto":ticket.attachment_url||"","Fecha de registro":new Date(ticket.created_at).toLocaleString("es-PE"),"Prioridad":ticket.priority,"Estado":ticket.status}));
+  const data=state.tickets.map(ticket=>({"Código":ticket.code,"Nombre del usuario":ticket.user_name,"Infraestructura":ticket.infrastructure,"Tema":ticket.topic,"Descripción del caso":ticket.description,"Adjunto":ticket.attachment_url||"","Fecha de registro":new Date(ticket.created_at).toLocaleString("es-PE"),"Prioridad":ticket.priority,"Estado":ticket.status}));
   if(window.XLSX){const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,XLSX.utils.json_to_sheet(data),"Pendientes");XLSX.writeFile(book,`pendientes-infraestructura-${new Date().toISOString().slice(0,10)}.xlsx`);notify("Archivo Excel descargado.");return;}
   const quote=value=>`"${String(value??"").replaceAll('"','""')}"`,headers=Object.keys(data[0]),lines=[headers.map(quote).join(";"),...data.map(row=>headers.map(key=>quote(row[key])).join(";"))];
   const blob=new Blob(["\ufeff"+lines.join("\r\n")],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download=`pendientes-infraestructura-${new Date().toISOString().slice(0,10)}.csv`;link.click();URL.revokeObjectURL(url);notify("Archivo compatible con Excel descargado.");
 }
 rows.addEventListener("change",event=>{const el=event.target;if(el.dataset.field)updateField(el.dataset.id,el.dataset.field,el.value);});
-rows.addEventListener("click",event=>{const button=event.target.closest("button[data-action]");if(!button)return;button.dataset.action==="view"?viewDetails(button.dataset.id):editTicket(button.dataset.id);});
-$("#new-ticket").addEventListener("click",openNewTicket); $("#refresh-button").addEventListener("click",loadTickets); $("#export-button").addEventListener("click",exportExcel); form.addEventListener("submit",saveTicket);
+rows.addEventListener("click",event=>{const button=event.target.closest("button[data-action]");if(!button)return;if(button.dataset.action==="view")viewDetails(button.dataset.id);else if(button.dataset.action==="edit")editTicket(button.dataset.id);else if(button.dataset.action==="delete")deleteTicket(button.dataset.id);});
+function showView(view, updateUrl = true) {
+  const dashboard = view === "dashboard";
+  $("#tickets").hidden = dashboard;
+  $("#dashboard-view").hidden = !dashboard;
+  $("#current-view-label").textContent = dashboard ? "Dashboard" : "Backlog online";
+  document.querySelectorAll(".sidebar-nav .nav-link").forEach(link=>link.classList.toggle("active",link.dataset.view===(dashboard?"dashboard":"tickets")));
+  if (updateUrl && location.hash !== `#${dashboard?"dashboard":"tickets"}`) history.replaceState(null,"",`#${dashboard?"dashboard":"tickets"}`);
+}
+document.querySelectorAll(".sidebar-nav .nav-link").forEach(link=>link.addEventListener("click",event=>{event.preventDefault();showView(link.dataset.view);}));
+$("#new-ticket").addEventListener("click",openNewTicket); $("#refresh-button").addEventListener("click",loadTickets); $("#dashboard-refresh").addEventListener("click",loadTickets); $("#export-button").addEventListener("click",exportExcel); form.addEventListener("submit",saveTicket);
 $("#theme-toggle").addEventListener("click",()=>setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
 $("#search-input").addEventListener("input",render); $("#status-filter").addEventListener("change",render); $("#priority-filter").addEventListener("change",render);
 document.querySelectorAll("[data-close]").forEach(button=>button.addEventListener("click",()=>button.closest("dialog").close()));
 document.querySelectorAll("dialog").forEach(dialog=>dialog.addEventListener("click",event=>{if(event.target===dialog)dialog.close();}));
 loadTickets();
 setTheme(document.documentElement.dataset.theme || "dark");
+showView(location.hash === "#dashboard" ? "dashboard" : "tickets", false);

@@ -14,12 +14,14 @@ Aplicación web estática en español para registrar casos, priorizarlos, seguir
 ## Funciones
 
 - Registro de usuario, infraestructura, tema, descripción y evidencia opcional (PNG, JPG, WEBP o GIF de hasta 5 MB).
+- Código correlativo `BY100`, `BY101`… que también se puede buscar desde la tabla.
 - Fecha automática de registro, prioridad y estado con actualización directa desde la tabla.
+- Eliminación de casos con confirmación y Dashboard con estadísticas por usuario, infraestructura, estado y prioridad.
 - Historial automático de modificaciones visible al elegir **Ver ediciones**.
 - Búsqueda, filtros por prioridad/estado, contadores y descarga de Excel `.xlsx` (con respaldo CSV compatible si la librería de hoja de cálculo no carga).
 
 ## Acceso y privacidad
 
-La configuración incluida es un MVP compartido sin cuentas: cualquier persona que tenga la URL puede consultar, registrar y editar casos, y las imágenes se sirven mediante enlaces públicos. No incluyas información sensible o confidencial. Para restringir el acceso se debe añadir autenticación (por ejemplo, acceso por correo con Supabase Auth) y ajustar las políticas RLS antes de compartir datos privados.
+La configuración incluida es un MVP compartido sin cuentas: cualquier persona que tenga la URL puede consultar, registrar, editar y eliminar casos, y las imágenes se sirven mediante enlaces públicos. No incluyas información sensible o confidencial. Para restringir el acceso se debe añadir autenticación (por ejemplo, acceso por correo con Supabase Auth) y ajustar las políticas RLS antes de compartir datos privados.
 
 La app requiere conexión a internet y un proyecto Supabase con la configuración anterior. El alojamiento de Vercel y los servicios de Supabase ofrecen planes gratuitos sujetos a sus límites y condiciones vigentes.
